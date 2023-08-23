@@ -15,7 +15,14 @@ const DashBoardLayout = async ({ children }: { children: React.ReactNode }) => {
         <SideBar isPro={isPro} apiLimitCount={apiLimitCount} />
       </div>
       <Navbar />
-      <main className="md:pl-72">{children}</main>
+      <main className="md:pl-72">
+        <div className="flex justify-center mx-2">
+          <p className="text-sm text-red-400">
+            You may get error while generation because of vercel timeout limit
+          </p>
+        </div>
+        {children}
+      </main>
     </div>
   );
 };
