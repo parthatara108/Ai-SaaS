@@ -39,3 +39,18 @@ export const checkApiLimit = async () => {
     return false;
   }
 };
+
+export const getApiLimitCount = async () => {
+  connectToDB();
+
+  const { userId } = auth();
+  if (!userId) return 0;
+
+  const apiLimitCount = await Limit.findOne({
+    userId: userId,
+  });
+
+  if (!apiLimitCount) return 0;
+
+  return apiLimitCount.count;
+};

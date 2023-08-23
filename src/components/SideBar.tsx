@@ -14,6 +14,7 @@ import {
   Settings,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
+import FreeCounter from "./FreeCounter";
 
 const PoppinsFont = Poppins({
   weight: "600",
@@ -64,7 +65,7 @@ const routes = [
   },
 ];
 
-const SideBar = () => {
+const SideBar = ({ apiLimitCount = 0 }: { apiLimitCount: number }) => {
   const pathname = usePathname();
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-[#111827] text-white">
@@ -97,6 +98,7 @@ const SideBar = () => {
           ))}
         </div>
       </div>
+      <FreeCounter apiLimitCount={apiLimitCount} />
     </div>
   );
 };
