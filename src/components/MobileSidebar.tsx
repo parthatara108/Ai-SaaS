@@ -4,9 +4,14 @@ import { Button } from "./ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import SideBar from "@/components/SideBar";
 import { useEffect, useState } from "react";
-import { getApiLimitCount } from "@/lib/api-limit";
 
-const MobileSidebar = ({ apiLimitCount = 0 }: { apiLimitCount: number }) => {
+const MobileSidebar = ({
+  apiLimitCount = 0,
+  isPro = false,
+}: {
+  apiLimitCount: number;
+  isPro: boolean;
+}) => {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -24,7 +29,7 @@ const MobileSidebar = ({ apiLimitCount = 0 }: { apiLimitCount: number }) => {
         </Button>
       </SheetTrigger>
       <SheetContent side={"left"} className="p-0">
-        <SideBar apiLimitCount={apiLimitCount} />
+        <SideBar isPro={isPro} apiLimitCount={apiLimitCount} />
       </SheetContent>
     </Sheet>
   );
