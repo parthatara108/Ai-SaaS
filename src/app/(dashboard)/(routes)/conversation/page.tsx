@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChatCompletionRequestMessage } from "openai";
 import axios from "axios";
 import Empty from "@/components/Empty";
@@ -23,7 +23,15 @@ import { toast } from "react-hot-toast";
 const ConversationPage = () => {
   const router = useRouter();
   const proModal = useProModal();
-  const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+
+  const fetchChats = async () => {
+    const res = await axios.get("/api/conversation");
+    setMessages(res.data);
+  };
+  useEffect(() => {
+    fetchChats();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -40,12 +48,13 @@ const ConversationPage = () => {
         role: "user",
         content: values.prompt,
       };
-      const newMessages = [...messages, userMessage];
+      const newMessages = [userMessage];
 
-      const response = await axios.post("/api/conversation", {
+      await axios.post("/api/conversation", {
         messages: newMessages,
       });
-      setMessages((current) => [...current, userMessage, response.data]);
+
+      fetchChats();
 
       form.reset();
     } catch (error: any) {
@@ -112,18 +121,23 @@ const ConversationPage = () => {
           )}
           <div className="flex flex-col-reverse gap-y-4">
             {messages.map((message) => (
-              <div
-                className={cn(
-                  "p-8 w-full flex items-start gap-x-8 rounded-lg",
-                  message.role === "user"
-                    ? "bg-white border border-black/10"
-                    : "bg-muted"
-                )}
-                key={message.content}
-              >
-                {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
-                <p className="text-sm">{message.content}</p>
-              </div>
+              <>
+                <div
+                  className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-muted mb-14"
+                  key={message.response._id}
+                >
+                  <BotAvatar />
+                  <p className="text-sm">{message.response.responseMessage}</p>
+                </div>
+
+                <div
+                  className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-white border border-black/10"
+                  key={message._id}
+                >
+                  <UserAvatar />
+                  <p className="text-sm">{message.question}</p>
+                </div>
+              </>
             ))}
           </div>
         </div>

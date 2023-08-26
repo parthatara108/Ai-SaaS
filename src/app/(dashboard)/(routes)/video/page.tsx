@@ -9,17 +9,27 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Empty from "@/components/Empty";
 import Loader from "@/components/Loader";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { toast } from "react-hot-toast";
+import UserAvatar from "@/components/UserAvatar";
 
 const VideoPage = () => {
   const router = useRouter();
   const proModal = useProModal();
-  const [video, setVideo] = useState<string>();
+  const [videos, setVideos] = useState<any[]>();
+
+  const fetchChats = async () => {
+    const res = await axios.get("/api/video");
+    setVideos(res.data);
+  };
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,10 +42,8 @@ const VideoPage = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      setVideo(undefined);
-
-      const response = await axios.post("/api/video", values);
-      setVideo(response.data[0]);
+      await axios.post("/api/video", values);
+      fetchChats();
       form.reset();
     } catch (error: any) {
       if (error?.response?.status === 403) {
@@ -96,15 +104,29 @@ const VideoPage = () => {
               <Loader />
             </div>
           )}
-          {!video && !isLoading && <Empty label="No Video Generated" />}
-          {video && (
-            <video
-              controls
-              className="w-full aspect-video rounded-lg border bg-black mt-8"
-            >
-              <source src={video} />
-            </video>
-          )}
+          {!videos && !isLoading && <Empty label="No Video Generated" />}
+          <div className="flex flex-col-reverse gap-y-1">
+            {videos &&
+              videos.map((video) => (
+                <>
+                  <div key={video._id} className="mb-16">
+                    <video
+                      controls
+                      className="w-full aspect-video rounded-lg border bg-black mt-4"
+                    >
+                      <source src={video.response.responseMessage} />
+                    </video>
+                  </div>
+                  <div
+                    className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-white border border-black/10"
+                    key={video.response._id}
+                  >
+                    <UserAvatar />
+                    {video.question}
+                  </div>
+                </>
+              ))}
+          </div>
         </div>
       </div>
     </div>

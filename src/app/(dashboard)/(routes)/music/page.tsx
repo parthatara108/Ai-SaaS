@@ -9,17 +9,27 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Empty from "@/components/Empty";
 import Loader from "@/components/Loader";
 import { useProModal } from "@/hooks/use-pro-modal";
 import { toast } from "react-hot-toast";
+import UserAvatar from "@/components/UserAvatar";
 
 const MusicPage = () => {
   const router = useRouter();
   const proModal = useProModal();
-  const [music, setMusic] = useState<string>();
+  const [musics, setMusics] = useState<any[]>([]);
+
+  const fetchChats = async () => {
+    const res = await axios.get("/api/music");
+    setMusics(res.data);
+  };
+
+  useEffect(() => {
+    fetchChats();
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,10 +42,8 @@ const MusicPage = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      setMusic(undefined);
-
-      const response = await axios.post("/api/music", values);
-      setMusic(response.data.audio);
+      await axios.post("/api/music", values);
+      fetchChats();
       form.reset();
     } catch (error: any) {
       if (error?.response?.status === 403) {
@@ -96,12 +104,26 @@ const MusicPage = () => {
               <Loader />
             </div>
           )}
-          {!music && !isLoading && <Empty label="No Music Generated" />}
-          {music && (
-            <audio controls className="w-full mt-8">
-              <source src={music} />
-            </audio>
-          )}
+          {!musics && !isLoading && <Empty label="No Music Generated" />}
+          <div className="flex flex-col-reverse gap-y-1">
+            {musics &&
+              musics.map((music) => (
+                <>
+                  <div key={music._id} className="mb-16">
+                    <audio controls className="w-full mt-4">
+                      <source src={music.response.responseMessage} />
+                    </audio>
+                  </div>
+                  <div
+                    className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-white border border-black/10"
+                    key={music.response._id}
+                  >
+                    <UserAvatar />
+                    {music.question}
+                  </div>
+                </>
+              ))}
+          </div>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChatCompletionRequestMessage } from "openai";
 import axios from "axios";
 import Empty from "@/components/Empty";
@@ -24,7 +24,17 @@ import { toast } from "react-hot-toast";
 const CodePage = () => {
   const router = useRouter();
   const proModal = useProModal();
-  const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+
+  const fetchChats = async () => {
+    const res = await axios.get("/api/code");
+    setMessages(res.data);
+  };
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  console.log(messages);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,6 +42,7 @@ const CodePage = () => {
       prompt: "",
     },
   });
+  console.log(messages);
 
   const isLoading = form.formState.isSubmitting;
 
@@ -41,12 +52,13 @@ const CodePage = () => {
         role: "user",
         content: values.prompt,
       };
-      const newMessages = [...messages, userMessage];
+      const newMessages = [userMessage];
 
-      const response = await axios.post("/api/code", {
+      await axios.post("/api/code", {
         messages: newMessages,
       });
-      setMessages((current) => [...current, userMessage, response.data]);
+
+      fetchChats();
 
       form.reset();
     } catch (error: any) {
@@ -113,32 +125,39 @@ const CodePage = () => {
           )}
           <div className="flex flex-col-reverse gap-y-4">
             {messages.map((message) => (
-              <div
-                className={cn(
-                  "p-8 w-full flex items-start gap-x-8 rounded-lg",
-                  message.role === "user"
-                    ? "bg-white border border-black/10"
-                    : "bg-muted"
-                )}
-                key={message.content}
-              >
-                {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
-                <ReactMarkDown
-                  components={{
-                    pre: ({ node, ...props }) => (
-                      <div className="overflow-auto w-full my-2 bg-black/10 p-2 rounded-lg">
-                        <pre {...props} />
-                      </div>
-                    ),
-                    code: ({ node, ...props }) => (
-                      <code className="bg-black/10 rounded-lg p-1" {...props} />
-                    ),
-                  }}
-                  className="text-sm overflow-hidden leading-7"
+              <>
+                <div
+                  className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-muted mb-14"
+                  key={message.response._id}
                 >
-                  {message.content || ""}
-                </ReactMarkDown>
-              </div>
+                  <BotAvatar />
+                  <ReactMarkDown
+                    components={{
+                      pre: ({ node, ...props }) => (
+                        <div className="overflow-auto w-full my-2 bg-black/10 p-2 rounded-lg">
+                          <pre {...props} />
+                        </div>
+                      ),
+                      code: ({ node, ...props }) => (
+                        <code
+                          className="bg-black/10 rounded-lg p-1"
+                          {...props}
+                        />
+                      ),
+                    }}
+                    className="text-sm overflow-hidden leading-7"
+                  >
+                    {message.response.responseMessage}
+                  </ReactMarkDown>
+                </div>
+                <div
+                  className="p-8 w-full flex items-start gap-x-8 rounded-lg bg-white border border-black/10"
+                  key={message._id}
+                >
+                  <UserAvatar />
+                  {message.question}
+                </div>
+              </>
             ))}
           </div>
         </div>

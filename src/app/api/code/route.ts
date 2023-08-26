@@ -3,6 +3,9 @@ import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 import { auth } from "@clerk/nextjs";
 import { checkApiLimit, increaseApiLimit } from "@/lib/api-limit";
 import { checkSubscription } from "@/lib/subscription";
+import { connectToDB } from "@/lib/db";
+import Message from "@/lib/model/Message.model";
+import Response from "@/lib/model/Response.model";
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -48,7 +51,39 @@ export async function POST(req: Request) {
 
     if (!isPro) await increaseApiLimit();
 
+    const insertedResponse = await Response.create({
+      responseMessage: response.data.choices[0].message?.content,
+    });
+
+    await Message.create({
+      userId: userId,
+      question: messages[0].content,
+      toolName: "Code",
+      response: insertedResponse._id,
+    });
+
     return NextResponse.json(response.data.choices[0].message);
+  } catch (error) {
+    console.log("conversation error: ", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    await connectToDB();
+
+    const { userId } = auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const response = await Message.find({
+      $and: [{ userId: userId }, { toolName: "Code" }],
+    }).populate("response");
+
+    return NextResponse.json(response);
   } catch (error) {
     console.log("conversation error: ", error);
     return new NextResponse("Internal error", { status: 500 });

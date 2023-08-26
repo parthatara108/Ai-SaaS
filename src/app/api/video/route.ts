@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs";
 import Replicate from "replicate";
 import { checkApiLimit, increaseApiLimit } from "@/lib/api-limit";
 import { checkSubscription } from "@/lib/subscription";
+import { connectToDB } from "@/lib/db";
+import Message from "@/lib/model/Message.model";
+import Response from "@/lib/model/Response.model";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN!,
@@ -28,7 +31,7 @@ export async function POST(req: Request) {
       return new NextResponse("Free Trail Expired", { status: 403 });
     }
 
-    const response = await replicate.run(
+    const response: any = await replicate.run(
       "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
       {
         input: {
@@ -39,9 +42,41 @@ export async function POST(req: Request) {
 
     if (!isPro) await increaseApiLimit();
 
+    const insertedResponse: any = await Response.create({
+      responseMessage: response[0],
+    });
+
+    await Message.create({
+      userId: userId,
+      question: prompt,
+      toolName: "Video",
+      response: insertedResponse._id,
+    });
+
     return NextResponse.json(response);
   } catch (error) {
     console.log("Video error: ", error);
+    return new NextResponse("Internal error", { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    await connectToDB();
+
+    const { userId } = auth();
+
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const response = await Message.find({
+      $and: [{ userId: userId }, { toolName: "Video" }],
+    }).populate("response");
+
+    return NextResponse.json(response);
+  } catch (error) {
+    console.log("conversation error: ", error);
     return new NextResponse("Internal error", { status: 500 });
   }
 }
